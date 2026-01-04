@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blueprint.zeroechelon.com/schema/v0.1.0.json",
+  "title": "Blueprint Standard Format",
+  "description": "Schema for AI agent orchestration specifications",
+  "type": "object",
+  "required": ["blueprint_version", "metadata", "tiers"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema"
+    },
+    "blueprint_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Blueprint format version (semver)"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "strategic_vision": {
+      "type": "string",
+      "description": "Natural language description of the goal"
+    },
+    "success_metrics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/success_metric"
+      }
+    },
+    "tiers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tier"
+      },
+      "minItems": 1
+    },
+    "dependency_graph": {
+      "$ref": "#/$defs/dependency_graph"
+    },
+    "document_control": {
+      "$ref": "#/$defs/document_control"
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "required": ["title", "status", "owner"],
+      "properties": {
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "status": {
+          "type": "string",
+          "enum": ["draft", "active", "complete", "archived"]
+        },
+        "created": {"type": "string", "format": "date"},
+        "updated": {"type": "string", "format": "date"},
+        "owner": {"type": "string"},
+        "repository": {"type": "string"}
+      }
+    },
+    "success_metric": {
+      "type": "object",
+      "required": ["metric", "target"],
+      "properties": {
+        "metric": {"type": "string"},
+        "target": {"type": "string"},
+        "validation": {"type": "string"}
+      }
+    },
+    "tier": {
+      "type": "object",
+      "required": ["tier_id", "name", "tasks"],
+      "properties": {
+        "tier_id": {"type": "string"},
+        "name": {"type": "string"},
+        "goal": {"type": "string"},
+        "status": {
+          "type": "string",
+          "enum": ["not_started", "in_progress", "complete", "blocked"]
+        },
+        "tasks": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/task"}
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": ["task_id", "name", "status", "dependencies", "interface", "acceptance_criteria", "test_command", "rollback"],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "pattern": "^T[0-9]+\\.[0-9]+$",
+          "description": "Unique task identifier (e.g., T1.2)"
+        },
+        "name": {"type": "string"},
+        "status": {
+          "type": "string",
+          "enum": ["not_started", "in_progress", "complete", "blocked", "skipped"]
+        },
+        "assignee": {"type": ["string", "null"]},
+        "estimated_sessions": {"type": "integer", "minimum": 1},
+        "dependencies": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "interface": {
+          "$ref": "#/$defs/interface"
+        },
+        "files_to_create": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "files_to_modify": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "acceptance_criteria": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "test_command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shell command that returns 0 on success"
+        },
+        "rollback": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Command to undo task changes"
+        },
+        "human_required": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/human_required"}
+          ]
+        },
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "interface": {
+      "type": "object",
+      "required": ["input", "output"],
+      "properties": {
+        "input": {"type": "string"},
+        "output": {"type": "string"}
+      }
+    },
+    "human_required": {
+      "type": "object",
+      "required": ["action", "reason", "notify"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "What the human must do"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why human action is needed"
+        },
+        "notify": {
+          "$ref": "#/$defs/notification"
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^[0-9]+[smhd]$",
+          "description": "Duration before timeout (e.g., 24h, 30m)"
+        },
+        "on_timeout": {
+          "type": "string",
+          "enum": ["abort", "skip", "continue"]
+        },
+        "on_missing": {
+          "type": "string",
+          "enum": ["abort", "skip", "continue"]
+        }
+      }
+    },
+    "notification": {
+      "type": "object",
+      "required": ["channel"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "enum": ["email", "slack", "webhook", "env", "console"]
+        },
+        "recipient": {"type": "string"},
+        "variable": {"type": "string"},
+        "variables": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "url": {"type": "string", "format": "uri"},
+        "webhook": {"type": "string", "format": "uri"}
+      }
+    },
+    "dependency_graph": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": {"type": "string"},
+              "to": {"type": "string"}
+            }
+          }
+        },
+        "parallelizable_groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["group_id", "tasks"],
+            "properties": {
+              "group_id": {"type": "string"},
+              "tasks": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "description": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "document_control": {
+      "type": "object",
+      "properties": {
+        "version": {"type": "string"},
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["version", "date", "author", "changes"],
+            "properties": {
+              "version": {"type": "string"},
+              "date": {"type": "string", "format": "date"},
+              "author": {"type": "string"},
+              "changes": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
