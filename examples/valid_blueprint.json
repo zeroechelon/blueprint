@@ -1,0 +1,199 @@
+{
+  "$schema": "https://blueprint.zeroechelon.com/schema/v0.1.0.json",
+  "blueprint_version": "0.1.0",
+  "metadata": {
+    "title": "Example Blueprint",
+    "description": "A minimal valid Blueprint demonstrating all required schema elements",
+    "status": "draft",
+    "created": "2026-01-03",
+    "updated": "2026-01-03",
+    "owner": "Richie Suarez",
+    "repository": "rgsuarez/example-project"
+  },
+  "strategic_vision": "Build a simple authentication system with JWT tokens",
+  "success_metrics": [
+    {
+      "metric": "Authentication success rate",
+      "target": ">99%",
+      "validation": "Load test with 1000 concurrent users"
+    },
+    {
+      "metric": "Token validation latency",
+      "target": "<10ms p99",
+      "validation": "Performance benchmark"
+    }
+  ],
+  "tiers": [
+    {
+      "tier_id": "T0",
+      "name": "Foundation",
+      "goal": "Set up project structure and dependencies",
+      "status": "not_started",
+      "tasks": [
+        {
+          "task_id": "T0.1",
+          "name": "Initialize project structure",
+          "status": "not_started",
+          "assignee": null,
+          "estimated_sessions": 1,
+          "dependencies": [],
+          "interface": {
+            "input": "Project requirements document",
+            "output": "Initialized Python project with pyproject.toml"
+          },
+          "files_to_create": [
+            "src/__init__.py",
+            "src/auth/__init__.py",
+            "pyproject.toml",
+            "README.md"
+          ],
+          "files_to_modify": [],
+          "acceptance_criteria": [
+            "Project directory structure exists",
+            "pyproject.toml has correct metadata",
+            "Package is installable with pip install -e ."
+          ],
+          "test_command": "pip install -e . && python -c 'import src.auth'",
+          "rollback": "rm -rf src pyproject.toml",
+          "human_required": null,
+          "notes": null
+        },
+        {
+          "task_id": "T0.2",
+          "name": "Add JWT dependencies",
+          "status": "not_started",
+          "assignee": null,
+          "estimated_sessions": 1,
+          "dependencies": ["T0.1"],
+          "interface": {
+            "input": "Initialized project",
+            "output": "Project with PyJWT installed"
+          },
+          "files_to_create": [],
+          "files_to_modify": ["pyproject.toml"],
+          "acceptance_criteria": [
+            "PyJWT is listed in dependencies",
+            "Package installs successfully with dependencies"
+          ],
+          "test_command": "pip install -e . && python -c 'import jwt'",
+          "rollback": "git checkout HEAD~1 -- pyproject.toml",
+          "human_required": null,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "tier_id": "T1",
+      "name": "Core Implementation",
+      "goal": "Implement JWT token creation and validation",
+      "status": "blocked",
+      "tasks": [
+        {
+          "task_id": "T1.1",
+          "name": "Implement token generation",
+          "status": "not_started",
+          "assignee": null,
+          "estimated_sessions": 2,
+          "dependencies": ["T0.2"],
+          "interface": {
+            "input": "User ID and claims dictionary",
+            "output": "Signed JWT token string"
+          },
+          "files_to_create": [
+            "src/auth/token.py",
+            "tests/test_token.py"
+          ],
+          "files_to_modify": [],
+          "acceptance_criteria": [
+            "generate_token(user_id, claims) returns valid JWT",
+            "Token contains user_id in payload",
+            "Token has configurable expiration",
+            "Token is signed with HS256 algorithm"
+          ],
+          "test_command": "python -m pytest tests/test_token.py -v",
+          "rollback": "git checkout HEAD~1 -- src/auth/token.py tests/test_token.py",
+          "human_required": {
+            "action": "Provide JWT signing secret",
+            "reason": "Required for cryptographic signing of tokens",
+            "notify": {
+              "channel": "env",
+              "variable": "JWT_SECRET"
+            },
+            "timeout": "24h",
+            "on_timeout": "abort",
+            "on_missing": "abort"
+          },
+          "notes": "Secret must be at least 32 characters for security"
+        },
+        {
+          "task_id": "T1.2",
+          "name": "Implement token validation",
+          "status": "not_started",
+          "assignee": null,
+          "estimated_sessions": 2,
+          "dependencies": ["T1.1"],
+          "interface": {
+            "input": "JWT token string",
+            "output": "Validated claims dictionary or ValidationError"
+          },
+          "files_to_create": [
+            "src/auth/validator.py",
+            "tests/test_validator.py"
+          ],
+          "files_to_modify": ["src/auth/__init__.py"],
+          "acceptance_criteria": [
+            "validate_token(token) returns claims on valid token",
+            "validate_token raises ValidationError on expired token",
+            "validate_token raises ValidationError on invalid signature",
+            "validate_token raises ValidationError on malformed token"
+          ],
+          "test_command": "python -m pytest tests/test_validator.py -v",
+          "rollback": "git checkout HEAD~1 -- src/auth/validator.py tests/test_validator.py",
+          "human_required": null,
+          "notes": null
+        }
+      ]
+    }
+  ],
+  "dependency_graph": {
+    "nodes": ["T0.1", "T0.2", "T1.1", "T1.2"],
+    "edges": [
+      {"from": "T0.1", "to": "T0.2"},
+      {"from": "T0.2", "to": "T1.1"},
+      {"from": "T1.1", "to": "T1.2"}
+    ],
+    "parallelizable_groups": [
+      {
+        "group_id": "A",
+        "tasks": ["T0.1"],
+        "description": "Initial blocking task"
+      },
+      {
+        "group_id": "B", 
+        "tasks": ["T0.2"],
+        "description": "Dependency setup"
+      },
+      {
+        "group_id": "C",
+        "tasks": ["T1.1"],
+        "description": "Token generation"
+      },
+      {
+        "group_id": "D",
+        "tasks": ["T1.2"],
+        "description": "Token validation"
+      }
+    ]
+  },
+  "document_control": {
+    "version": "0.1",
+    "history": [
+      {
+        "version": "0.1",
+        "date": "2026-01-03",
+        "author": "Claude (Persistence Executor)",
+        "changes": "Initial Blueprint creation"
+      }
+    ]
+  }
+}
